@@ -1,6 +1,6 @@
 <?php
 
-require_once('../lib/storm.php');
+require_once('../../lib/storm.php');
 
 
 class SplitSentenceBolt extends BasicBolt
