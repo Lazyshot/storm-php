@@ -36,4 +36,4 @@ Examples
 Author
 ======
 
-Bryan Peterson - @lazyshot
+Bryan Peterson - [@lazyshot](http://twitter.com/lazyshot)
