@@ -1,5 +1,8 @@
 <?php
 
+interface iShellBolt {}
+interface iShellSpout {}
+
 class Tuple
 {
 	public $id, $component, $stream, $task, $values;
@@ -104,23 +107,8 @@ abstract class ShellComponent
 	}
 }
 
-interface iBolt
-{
-	//public function run();
-	/*
-	protected function init($conf, $topology);
-	protected function process(Tuple $tuple);
-	protected function sync();
-	protected function emitTuple(array $tuple, $stream, $anchors, $directTask);
-	protected function emit(array $tuple, $stream, $anchors);
-	protected function emitDirect($directTask, array $tuple, $stream, $anchors);
-	protected function ack(Tuple $tuple);
-	protected function fail(Tuple $tuple);
-	protected function getNextTuple();
-	*/
-}
 
-abstract class ShellBolt extends ShellComponent implements iBolt {
+abstract class ShellBolt extends ShellComponent implements iShellBolt {
 
 	public $anchor_tuple = null;
 	
@@ -131,7 +119,24 @@ abstract class ShellBolt extends ShellComponent implements iBolt {
 		$this->init($this->stormConf, $this->topologyContext);
 	}
 	
-	abstract public function run();
+	public function run()
+	{
+		try {
+			while(true)
+			{
+				$tuple = $this->getNextTuple();
+				
+				$this->process($tuple);
+				
+				$this->sync();
+			}
+		} 
+		catch(Exception $e)
+		{
+			$this->sendLog( $e->getTraceAsSTring() );
+		}
+	}
+	
 	abstract protected function process(Tuple $tuple);
 	
 	protected function init($conf, $topology)
@@ -212,34 +217,7 @@ abstract class ShellBolt extends ShellComponent implements iBolt {
 	}
 }
 
-
-class Bolt extends ShellBolt
-{		
-	public function run()
-	{
-		try {
-			while(true)
-			{
-				$tuple = $this->getNextTuple();
-				
-				$this->process($tuple);
-				
-				$this->sync();
-			}
-		} 
-		catch(Exception $e)
-		{
-			$this->sendLog( $e->getTraceAsSTring() );
-		}
-	}
-	
-	protected function process(Tuple $tuple)
-	{
-		return;
-	}	
-}
-
-class BasicBolt extends Bolt
+abstract class BasicBolt extends ShellBolt
 {
 	public function run()
 	{
@@ -250,8 +228,15 @@ class BasicBolt extends Bolt
 				
 				$this->anchor_tuple = $tuple;
 				
-				$this->process($tuple);	
-				$this->ack($tuple);
+				try
+				{
+					$this->process($tuple);	
+					$this->ack($tuple);
+				}
+				catch (BoltProcessException $e)
+				{
+					$this->fail($tuple);
+				}
 				
 				$this->sync();
 			}
@@ -262,20 +247,11 @@ class BasicBolt extends Bolt
 		}
 		
 	}
-}
-
-interface iSpout
-{
-	public function run();
 	
-	/*
-	protected function nextTuple();
-	protected function ack($tuple_id);
-	protected function fail($tuple_id);	
-	*/
+	protected function process(Tuple $tuple);
 }
 
-abstract class ShellSpout extends ShellComponent implements iSpout
+abstract class ShellSpout extends ShellComponent implements iShellSpout
 {
 	protected $tuples = array();
 	
@@ -349,3 +325,5 @@ abstract class ShellSpout extends ShellComponent implements iSpout
 		return $this->sendCommand($command);
 	}
 }
+
+class BoltProcessException extends Exception {}
