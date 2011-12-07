@@ -62,12 +62,6 @@ abstract class ShellComponent
 				$message = '';
 				continue;
 			}
-			else if ($line == 'next')
-			{
-				$message = '';
-				$this->nextTuple();
-				continue;
-			}
 			
 			$message .= $line . "\n";			
 		}
@@ -272,13 +266,20 @@ abstract class ShellSpout extends ShellComponent implements iShellSpout
 		{
 			$command = $this->parseMessage( $this->waitForMessage() );
 			
-			if ($command['command'] == 'ack')
+			if (is_string($command) && $command == 'next')
 			{
-				$this->ack($command['id']);
+				$this->nextTuple();
 			}
-			else if ($command['command'] == 'fail')
+			else if (is_array($command))
 			{
-				$this->fail($command['id']);
+				if ($command['command'] == 'ack')
+				{
+					$this->ack($command['id']);
+				}
+				else if ($command['command'] == 'fail')
+				{
+					$this->fail($command['id']);
+				}
 			}
 		}
 	}
