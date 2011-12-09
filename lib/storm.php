@@ -23,10 +23,20 @@ abstract class ShellComponent
 	protected $stormConf;
 	protected $topologyContext;
 	
-	public function __construct()
-	{
+	protected $stormInc = null;
+	protected $_DEBUG = false;
+	
+	public function __construct($debug = false)
+	{		
 		$this->pid = getmypid();
 		$this->sendLine($this->pid);
+		
+		$this->_debug = $debug;
+		
+		if ($this->_DEBUG)
+		{
+			$this->stormInc = fopen('/tmp/' . $this->pid . "_" . strtolower($_SERVER['argv'][0]) . '.txt', 'w+');
+		}
 		
 		$pidDir = $this->readLine();		
 		@fclose(@fopen($pidDir . "/" . $this->pid, "w"));
@@ -39,6 +49,11 @@ abstract class ShellComponent
 	{
 		$line = trim(fgets(STDIN));
 		
+		if ($this->_DEBUG)
+		{
+			fputs($this->stormInc, $line . "\n");
+		}
+		
 		return $line;
 	}
 	
@@ -47,7 +62,7 @@ abstract class ShellComponent
 		$message = '';
 		while (true)
 		{
-			$line = $this->readLine();
+			$line = trim($this->readLine());
 			
 			if (strlen($line) == 0)
 			{
@@ -66,7 +81,7 @@ abstract class ShellComponent
 			$message .= $line . "\n";			
 		}
 		
-		return $message;
+		return trim($message);
 	}
 	
 	protected function sendCommand(array $command)
@@ -84,7 +99,16 @@ abstract class ShellComponent
 	
 	protected function parseMessage($message)
 	{
-		return json_decode($message, true);
+		$msg = json_decode($message, true);
+		
+		if ($msg)
+		{
+			return $msg;
+		}
+		else
+		{
+			return $message;
+		}
 	}
 	
 	protected function sendMessage($message)
@@ -117,11 +141,29 @@ abstract class ShellBolt extends ShellComponent implements iShellBolt {
 		try {
 			while(true)
 			{
-				$tuple = $this->getNextTuple();
+				$command = $this->parseMessage( $this->waitForMessage() );
 				
-				$this->process($tuple);
-				
-				$this->sync();
+				if (is_array($command))
+				{
+					if (isset($command['tuple']))
+					{
+						$tupleMap = array_merge(array(
+							'id' => null, 
+							'comp' => null, 
+							'stream' => null, 
+							'task' => null, 
+							'tuple' => null
+						),
+						
+						$command);
+		
+						$tuple = new Tuple($tupleMap['id'], $tupleMap['comp'], $tupleMap['stream'], $tupleMap['task'], $tupleMap['tuple']);
+						
+						$this->process($tuple);
+						
+						$this->sync();
+					}
+				}
 			}
 		} 
 		catch(Exception $e)
@@ -202,12 +244,6 @@ abstract class ShellBolt extends ShellComponent implements iShellBolt {
 		
 		$this->sendCommand($command);
 	}
-
-	protected function getNextTuple()
-	{
-		$tupleMap = $this->parseMessage( $this->waitForMessage() );
-		return new Tuple($tupleMap['id'], $tupleMap['comp'], $tupleMap['stream'], $tupleMap['task'], $tupleMap['tuple']);
-	}
 }
 
 abstract class BasicBolt extends ShellBolt
@@ -217,21 +253,46 @@ abstract class BasicBolt extends ShellBolt
 		try {
 			while(true)
 			{
-				$tuple = $this->getNextTuple();
+				$command = $this->parseMessage( $this->waitForMessage() );
 				
-				$this->anchor_tuple = $tuple;
-				
-				try
+				if (is_array($command))
 				{
-					$this->process($tuple);	
-					$this->ack($tuple);
+					if (isset($command['tuple']))
+					{
+						$tupleMap = array_merge(array(
+							'id' => null, 
+							'comp' => null, 
+							'stream' => null, 
+							'task' => null, 
+							'tuple' => null
+						),
+						
+						$command);
+		
+						$tuple = new Tuple($tupleMap['id'], $tupleMap['comp'], $tupleMap['stream'], $tupleMap['task'], $tupleMap['tuple']);
+						
+						$this->anchor_tuple = $tuple;
+						
+						try
+						{
+							$processed = $this->process($tuple);
+		
+							if ($processed)
+							{
+								$this->ack($tuple);
+							}
+							else {
+								$this->fail($tuple);
+							}
+						}
+						catch (BoltProcessException $e)
+						{
+							$this->fail($tuple);
+						}
+						
+						$this->sync();
+					}
 				}
-				catch (BoltProcessException $e)
-				{
-					$this->fail($tuple);
-				}
-				
-				$this->sync();
 			}
 		} 
 		catch(Exception $e)
@@ -240,8 +301,6 @@ abstract class BasicBolt extends ShellBolt
 		}
 		
 	}
-
-	protected function process(Tuple $tuple);
 }
 
 abstract class ShellSpout extends ShellComponent implements iShellSpout
@@ -272,13 +331,16 @@ abstract class ShellSpout extends ShellComponent implements iShellSpout
 			}
 			else if (is_array($command))
 			{
-				if ($command['command'] == 'ack')
-				{
-					$this->ack($command['id']);
-				}
-				else if ($command['command'] == 'fail')
-				{
-					$this->fail($command['id']);
+				if (isset($command['command']))
+				{					
+					if ($command['command'] == 'ack')
+					{
+						$this->ack($command['id']);
+					}
+					else if ($command['command'] == 'fail')
+					{
+						$this->fail($command['id']);
+					}
 				}
 			}
 		}
