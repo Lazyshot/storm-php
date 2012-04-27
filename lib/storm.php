@@ -29,7 +29,7 @@ abstract class ShellComponent
 	public function __construct($debug = false)
 	{		
 		$this->pid = getmypid();
-		$this->sendLine($this->pid);
+		$this->sendCommand(array( "pid" => $this->pid ));
 		
 		$this->_debug = $debug;
 		
@@ -118,11 +118,6 @@ abstract class ShellComponent
 		fflush(STDOUT);	
 	}
 	
-	protected function sendLine($string)
-	{
-		echo $string . "\n";
-		fflush(STDOUT);
-	}
 }
 
 abstract class ShellBolt extends ShellComponent implements iShellBolt {
@@ -142,7 +137,7 @@ abstract class ShellBolt extends ShellComponent implements iShellBolt {
 			while(true)
 			{
 				$command = $this->parseMessage( $this->waitForMessage() );
-				
+								
 				if (is_array($command))
 				{
 					if (isset($command['tuple']))
@@ -181,7 +176,7 @@ abstract class ShellBolt extends ShellComponent implements iShellBolt {
 		
 	protected function sync()
 	{
-		$this->sendLine('sync');
+		$this->sendCommand(array( 'command' => 'sync' ));
 	}
 	
 	protected function emitTuple(array $tuple, $stream = null, $anchors = array(), $directTask = null)
@@ -268,7 +263,7 @@ abstract class BasicBolt extends ShellBolt
 						),
 						
 						$command);
-		
+						
 						$tuple = new Tuple($tupleMap['id'], $tupleMap['comp'], $tupleMap['stream'], $tupleMap['task'], $tupleMap['tuple']);
 						
 						$this->anchor_tuple = $tuple;
