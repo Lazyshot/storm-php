@@ -212,7 +212,6 @@ abstract class ShellBolt extends ShellComponent implements iShellBolt {
 	protected function emit($tuple, $stream = null, $anchors = array())
 	{
 		$this->emitTuple($tuple, $stream, $anchors);
-		return $this->readMsg();
 	}
 
 	protected function emitDirect($directTask, $tuple, $stream = null, $anchors = array())
