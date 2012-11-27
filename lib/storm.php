@@ -270,14 +270,8 @@ abstract class BasicBolt extends ShellBolt
 						try
 						{
 							$processed = $this->process($tuple);
-		
-							if ($processed)
-							{
-								$this->ack($tuple);
-							}
-							else {
-								$this->fail($tuple);
-							}
+
+							$this->ack($tuple);
 						}
 						catch (BoltProcessException $e)
 						{
