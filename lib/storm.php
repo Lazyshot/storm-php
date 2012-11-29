@@ -155,8 +155,6 @@ abstract class ShellBolt extends ShellComponent implements iShellBolt {
 						$tuple = new Tuple($tupleMap['id'], $tupleMap['comp'], $tupleMap['stream'], $tupleMap['task'], $tupleMap['tuple']);
 						
 						$this->process($tuple);
-						
-						$this->sync();
 					}
 				}
 			}
@@ -173,12 +171,7 @@ abstract class ShellBolt extends ShellComponent implements iShellBolt {
 	{
 		return;
 	}
-		
-	protected function sync()
-	{
-		$this->sendCommand(array( 'command' => 'sync' ));
-	}
-	
+
 	protected function emitTuple(array $tuple, $stream = null, $anchors = array(), $directTask = null)
 	{
 		if ($this->anchor_tuple !== null)
