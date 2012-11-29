@@ -38,11 +38,13 @@ abstract class ShellComponent
 			$this->stormInc = fopen('/tmp/' . $this->pid . "_" . strtolower($_SERVER['argv'][0]) . '.txt', 'w+');
 		}
 		
-		$pidDir = $this->readLine();		
-		@fclose(@fopen($pidDir . "/" . $this->pid, "w"));
+		$handshake = $this->parseMessage( $this->waitForMessage() );
 		
-		$this->stormConf = $this->parseMessage( $this->waitForMessage() );
-		$this->topologyContext = $this->parseMessage( $this->waitForMessage() );
+		$this->stormConf = $handshake['conf'];
+		$this->topologyContext = $handshake['context'];
+		$pidDir = $handshake['pidDir'];
+		
+		@fclose(@fopen($pidDir . "/" . $this->pid, "w"));
 	}
 	
 	protected function readLine()
