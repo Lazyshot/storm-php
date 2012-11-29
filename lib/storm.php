@@ -313,11 +313,7 @@ abstract class ShellSpout extends ShellComponent implements iShellSpout
 		{
 			$command = $this->parseMessage( $this->waitForMessage() );
 			
-			if (is_string($command) && $command == 'next')
-			{
-				$this->nextTuple();
-			}
-			else if (is_array($command))
+			if (is_array($command))
 			{
 				if (isset($command['command']))
 				{					
@@ -328,6 +324,10 @@ abstract class ShellSpout extends ShellComponent implements iShellSpout
 					else if ($command['command'] == 'fail')
 					{
 						$this->fail($command['id']);
+					}
+					else if ($command['command'] == 'next')
+					{
+						$this->nextTuple();
 					}
 				}
 			}
