@@ -5,7 +5,7 @@ require_once('../../lib/storm.php');
 
 class SplitSentenceBolt extends BasicBolt
 {
-	public function process($tuple)
+	public function process(Tuple $tuple)
 	{
 		$words = explode(" ", $tuple->values[0]);
 		foreach($words as $word)
