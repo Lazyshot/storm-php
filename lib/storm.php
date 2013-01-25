@@ -272,8 +272,6 @@ abstract class BasicBolt extends ShellBolt
 						{
 							$this->fail($tuple);
 						}
-						
-						$this->sync();
 					}
 				}
 			}
