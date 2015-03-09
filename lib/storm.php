@@ -155,8 +155,12 @@ abstract class ShellBolt extends ShellComponent implements iShellBolt {
 						$command);
 		
 						$tuple = new Tuple($tupleMap['id'], $tupleMap['comp'], $tupleMap['stream'], $tupleMap['task'], $tupleMap['tuple']);
-						
-						$this->process($tuple);
+
+						if ($tuple->task == -1 && $tuple->stream === '__heartbeat') {
+							$this->sync();
+						} else {
+							$this->process($tuple);
+						}
 					}
 				}
 			}
@@ -233,6 +237,15 @@ abstract class ShellBolt extends ShellComponent implements iShellBolt {
 		
 		$this->sendCommand($command);
 	}
+
+	protected function sync()
+	{
+		$command = array(
+			'command' => 'sync'
+		);
+
+		$this->sendCommand($command);
+	}
 }
 
 abstract class BasicBolt extends ShellBolt
@@ -264,9 +277,13 @@ abstract class BasicBolt extends ShellBolt
 						
 						try
 						{
-							$processed = $this->process($tuple);
+							if ($tuple->task == -1 && $tuple->stream === '__heartbeat') {
+								$this->sync();
+							} else {
+								$processed = $this->process($tuple);
 
-							$this->ack($tuple);
+								$this->ack($tuple);
+							}
 						}
 						catch (BoltProcessException $e)
 						{
@@ -299,7 +316,7 @@ abstract class ShellSpout extends ShellComponent implements iShellSpout
 	abstract protected function nextTuple();	
 	abstract protected function ack($tuple_id);
 	abstract protected function fail($tuple_id);
-	
+
 	public function run()
 	{
 		while (true)
