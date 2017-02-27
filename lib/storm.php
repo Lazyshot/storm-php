@@ -31,11 +31,11 @@ abstract class ShellComponent
 		$this->pid = getmypid();
 		$this->sendCommand(array( "pid" => $this->pid ));
 		
-		$this->_debug = $debug;
+		$this->_DEBUG = $debug;
 		
 		if ($this->_DEBUG)
 		{
-			$this->stormInc = fopen('/tmp/' . $this->pid . "_" . strtolower($_SERVER['argv'][0]) . '.txt', 'w+');
+			$this->stormInc = fopen('/tmp/' . $this->pid . "_" . strtolower(basename($_SERVER['argv'][0])) . '.txt', 'w+');
 		}
 		
 		$handshake = $this->parseMessage( $this->waitForMessage() );
